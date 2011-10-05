@@ -75,16 +75,35 @@ class PhpNsTrains {
 	function getDepartures($station, $key = null) {
 		$xmlTree = $this->getUrl('ns-api-avt', array('station' => $station));
 		$output = array();
+		// Loop over each train entry
 		foreach($xmlTree as $xmlTrain) {
-			$train = (array) $xmlTrain;
-			$output[] = array('departure' => strtotime($train['VertrekTijd']), 'service' => $train['RitNummer'],
+			// Cast as an array to get access to most keys
+			$train = (array) $xmlTrain;	
+			$add = array('departure' => strtotime($train['VertrekTijd']), 'service' => $train['RitNummer'],
 				'destination' => $train['EindBestemming'], 'type' => $train['TreinSoort'], 
-				'platform' => $train['VertrekSpoor'], 'via' => $train['RouteTekst']);
+				'platform' => $train['VertrekSpoor'], 'via' => $train['RouteTekst'] ? $train['RouteTekst'] : "");
+			
+			// Decode any (optional) delay to a integer minute value
+			if (isset($train['VertrekVertraging'])) {
+				if (preg_match('/^PT(\d{0,3}?)M$/', $train['VertrekVertraging'], $matches)) {
+					$add['delay'] = $matches[1];
+				}
+			}
+
+			// Check if the platform was changed
+			$changed = false;
+			if($xmlTrain->VertrekSpoor->attributes()) {
+				$attr = (array) $xmlTrain->VertrekSpoor->attributes();
+				if (isset($attr['@attributes']['wijziging']) && $attr['@attributes']['wijziging'] == "true")
+					$changed = true;
+			}
+			$add['platform_changed'] = $changed;
+			
+			// Add the train to our output list
+			$output[] = $add;
 		}
 		return $output;
 	}
-	
-
 	
 	/* 
 	 * List the available travel options given a origin and destination.
