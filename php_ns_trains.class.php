@@ -174,7 +174,7 @@ class PhpNsTrains {
 					case "reductie_20": $discount = 20; break;
 					case "reductie_40": $discount = 40; break;
 					case "vol tarief": $discount = 0; break;
-					default: $discount = 20; break;
+					default: $discount = 0; break;
 				}
 				$output[] = array('product' => $productArray['@attributes']['naam'], 
 					'class' => $price['@attributes']['klasse'], 'discount' => $discount, 'price' => $price[0]);
