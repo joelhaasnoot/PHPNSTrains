@@ -99,6 +99,17 @@ class PhpNsTrains {
 			}
 			$add['platform_changed'] = $changed;
 			
+			// Add the various comments, also check if train is cancelled
+			$cancelled = false;
+			foreach($xmlTrain->Opmerkingen as $comment) {
+				$text = trim((string) $comment->Opmerking);
+				if ($text == "Rijdt vandaag niet") {
+					$cancelled = true;
+				}
+				$add['comments'][] = $text;
+			}
+			$add['cancelled'] = $cancelled;
+			
 			// Add the train to our output list
 			$output[] = $add;
 		}
