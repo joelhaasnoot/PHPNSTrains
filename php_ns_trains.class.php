@@ -160,18 +160,24 @@ class PhpNsTrains {
 	
 	/* 
 	 * Get a list of prices for a give to/from trip 
+	 * Lists class as 1 or 2 (first/second) and discount as (0, 20 or 40%)
 	 */
 	function getPrices($from, $to, $via = null) {
-		$xmlTree = $this->getUrl('ns-api-prijzen', array('from' => $from, 'to' => $to, 'via' => $via)); 
+		$xmlTree = $this->getUrl('ns-api-prijzen-v2', array('from' => $from, 'to' => $to, 'via' => $via)); 
 		
 		$output = array();
 		foreach($xmlTree->Product as $product) {
 			$productArray = (array) $product;
 			foreach ($product->Prijs as $price) {
 				$price = (array) $price;
-				$isDiscount = ($price['@attributes']['korting'] == "vol tarief") ? false : true;
+				switch ($price['@attributes']['korting']) {
+					case "reductie_20": $discount = 20; break;
+					case "reductie_40": $discount = 40; break;
+					case "vol tarief": $discount = 0; break;
+					default: $discount = 20; break;
+				}
 				$output[] = array('product' => $productArray['@attributes']['naam'], 
-					'class' => $price['@attributes']['klasse'], 'discount' => $isDiscount, 'price' => $price[0]);
+					'class' => $price['@attributes']['klasse'], 'discount' => $discount, 'price' => $price[0]);
 			}
 		}
 		
