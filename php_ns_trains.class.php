@@ -74,6 +74,7 @@ class PhpNsTrains {
 	 */
 	function getDepartures($station, $key = null) {
 		$xmlTree = $this->getUrl('ns-api-avt', array('station' => $station));
+		
 		$output = array();
 		// Loop over each train entry
 		foreach($xmlTree as $xmlTrain) {
@@ -81,6 +82,7 @@ class PhpNsTrains {
 			$train = (array) $xmlTrain;	
 			$add = array('departure' => strtotime($train['VertrekTijd']), 'service' => $train['RitNummer'],
 				'destination' => $train['EindBestemming'], 'type' => $train['TreinSoort'], 
+				'carrier' =>  $train['Vervoerder'],
 				'platform' => $train['VertrekSpoor'], 'via' => $train['RouteTekst'] ? $train['RouteTekst'] : "");
 			
 			// Decode any (optional) delay to a integer minute value
@@ -215,7 +217,7 @@ class PhpNsTrains {
 		$query = "?";
 		foreach($vars as $key => $value) {
 			if ($value != "") {
-				$query .= $key."=".$value."&";
+				$query .= $key."=".urlencode($value)."&";
 			}
 		}
 		$query = rtrim($query, '&'); 
