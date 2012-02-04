@@ -16,10 +16,16 @@
 	if ($_POST['station']) {
 		require('../php_ns_trains.class.php');
 		$ns = new PhpNsTrains(API_USER, API_PASSWORD);
-		foreach($ns->getDepartures($_POST['station']) as $train) {
-			echo date('H:i', $train['departure']). ' - '.$train['type'].' '.$train['service']. 
-				' > <a title="via '.$train['via'].'">'.$train['destination'].'</a> (Platform '.$train['platform'].')'.'<br />';			
+		$departures = $ns->getDepartures($_POST['station']);
+		if (!is_array($departures)) {
+			echo '<p class="error">'.$departures.'</p>';
+		} else {
+			foreach($departures as $train) {
+				echo date('H:i', $train['departure']).' - '.$train['carrier'].' '.$train['type'].' '.$train['service']. 
+					' > <a title="via '.$train['via'].'">'.$train['destination'].'</a> (Platform '.$train['platform'].')'.'<br />';			
+			}	
 		}
+		
 	}
 ?>
 	</body>

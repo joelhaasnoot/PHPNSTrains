@@ -71,49 +71,59 @@ class PhpNsTrains {
 	
 	/* 
 	 * Get a live list of departures for a given station, optionally with an name of key to use for the index
+	 * Returns a list of departing trains if successfull, an string with error message, or false
 	 */
 	function getDepartures($station, $key = null) {
 		$xmlTree = $this->getUrl('ns-api-avt', array('station' => $station));
 		
 		$output = array();
-		// Loop over each train entry
-		foreach($xmlTree as $xmlTrain) {
-			// Cast as an array to get access to most keys
-			$train = (array) $xmlTrain;	
-			$add = array('departure' => strtotime($train['VertrekTijd']), 'service' => $train['RitNummer'],
-				'destination' => $train['EindBestemming'], 'type' => $train['TreinSoort'], 
-				'carrier' =>  $train['Vervoerder'],
-				'platform' => $train['VertrekSpoor'], 'via' => $train['RouteTekst'] ? $train['RouteTekst'] : "");
-			
-			// Decode any (optional) delay to a integer minute value
-			if (isset($train['VertrekVertraging'])) {
-				if (preg_match('/^PT(\d{0,3}?)M$/', $train['VertrekVertraging'], $matches)) {
-					$add['delay'] = $matches[1];
+		// Check if we actually found a list of trains or we got an error
+		if ($xmlTree->getName() != 'ActueleVertrekTijden') {
+			// Return the error, otherwise false
+			if ($xmlTree->getName() == 'error') {
+				return $xmlTree->message;	
+			}
+			return false;
+		} else {
+			// Loop over each train entry
+			foreach($xmlTree as $xmlTrain) {
+				// Cast as an array to get access to most keys
+				$train = (array) $xmlTrain;	
+				$add = array('departure' => strtotime($train['VertrekTijd']), 'service' => $train['RitNummer'],
+					'destination' => $train['EindBestemming'], 'type' => $train['TreinSoort'], 
+					'carrier' =>  $train['Vervoerder'],
+					'platform' => $train['VertrekSpoor'], 'via' => $train['RouteTekst'] ? $train['RouteTekst'] : "");
+				
+				// Decode any (optional) delay to a integer minute value
+				if (isset($train['VertrekVertraging'])) {
+					if (preg_match('/^PT(\d{0,3}?)M$/', $train['VertrekVertraging'], $matches)) {
+						$add['delay'] = $matches[1];
+					}
 				}
-			}
-
-			// Check if the platform was changed
-			$changed = false;
-			if($xmlTrain->VertrekSpoor->attributes()) {
-				$attr = (array) $xmlTrain->VertrekSpoor->attributes();
-				if (isset($attr['@attributes']['wijziging']) && $attr['@attributes']['wijziging'] == "true")
-					$changed = true;
-			}
-			$add['platform_changed'] = $changed;
-			
-			// Add the various comments, also check if train is cancelled
-			$cancelled = false;
-			foreach($xmlTrain->Opmerkingen as $comment) {
-				$text = trim((string) $comment->Opmerking);
-				if ($text == "Rijdt vandaag niet") {
-					$cancelled = true;
+	
+				// Check if the platform was changed
+				$changed = false;
+				if($xmlTrain->VertrekSpoor->attributes()) {
+					$attr = (array) $xmlTrain->VertrekSpoor->attributes();
+					if (isset($attr['@attributes']['wijziging']) && $attr['@attributes']['wijziging'] == "true")
+						$changed = true;
 				}
-				$add['comments'][] = $text;
+				$add['platform_changed'] = $changed;
+				
+				// Add the various comments, also check if train is cancelled
+				$cancelled = false;
+				foreach($xmlTrain->Opmerkingen as $comment) {
+					$text = trim((string) $comment->Opmerking);
+					if ($text == "Rijdt vandaag niet") {
+						$cancelled = true;
+					}
+					$add['comments'][] = $text;
+				}
+				$add['cancelled'] = $cancelled;
+				
+				// Add the train to our output list
+				$output[] = $add;
 			}
-			$add['cancelled'] = $cancelled;
-			
-			// Add the train to our output list
-			$output[] = $add;
 		}
 		return $output;
 	}
